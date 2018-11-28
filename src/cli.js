@@ -134,21 +134,14 @@ const getOrAskTrackerToken = async path => {
   }
 };
 
-const run = async () => {
-  const gitHead = await fileOrExit(
-    ".git/HEAD",
-    "Please run this from the git root of your project"
-  );
-  const trackerData = await getOrAskTrackerToken(`${homedir}/.pt.json`);
-  const apiKey = trackerData.apiKey;
-
-  const fetchPivotalData = async apiPath =>
+const createDataFetcher = apiToken => {
+  return async apiPath =>
     new Promise((resolve, reject) => {
       https.get(
         `https://www.pivotaltracker.com/services/v5${apiPath}`,
         {
           headers: {
-            "X-TrackerToken": apiKey
+            "X-TrackerToken": apiToken
           }
         },
         response => {
@@ -171,6 +164,17 @@ const run = async () => {
         }
       );
     });
+};
+
+const run = async () => {
+  const gitHead = await fileOrExit(
+    ".git/HEAD",
+    "Please run this from the git root of your project"
+  );
+  const trackerData = await getOrAskTrackerToken(`${homedir}/.pt.json`);
+  const apiToken = trackerData.apiKey;
+  const fetchPivotalData = createDataFetcher(apiToken);
+
   const data = await fetchPivotalData("/me");
   console.log(data.projects.map(p => p.project_name));
 };
