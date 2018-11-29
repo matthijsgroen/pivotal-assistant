@@ -5,45 +5,12 @@ const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
 const homedir = require("os").homedir();
 const https = require("https");
+const theme = require("./themes/pivotal");
 
 const screen = blessed.screen({
   smartCSR: true
 });
 
-const TEXT_STYLING = {
-  fg: "#F1F0E3",
-  bg: "#464D55"
-};
-
-const BUTTON_STYLING = {
-  fg: "#F1F0E3",
-  bg: "#213F63",
-  focus: {
-    bg: "#242D50"
-  }
-};
-
-const BOX_STYLING = {
-  padding: {
-    top: 1,
-    bottom: 1,
-    left: 4,
-    right: 4
-  },
-  border: {
-    type: "line"
-  },
-  style: {
-    ...TEXT_STYLING,
-    border: {
-      fg: "#666666",
-      bg: "#464D55"
-    },
-    hover: {
-      bg: "green"
-    }
-  }
-};
 screen.title = "Pivotal assistant";
 
 // Quit on Escape, q, or Control-C.
@@ -54,7 +21,7 @@ screen.key(["escape", "q", "C-c"], function(ch, key) {
 const showMessage = async text =>
   new Promise(resolve => {
     const message = blessed.message({
-      ...BOX_STYLING,
+      ...theme.BOX_STYLING,
       top: "center",
       left: "center"
     });
@@ -78,7 +45,7 @@ const getOrAskTrackerToken = async path => {
   } catch (e) {
     return new Promise(resolve => {
       const form = blessed.form({
-        ...BOX_STYLING,
+        ...theme.BOX_STYLING,
         top: "center",
         left: "center",
         keys: true
@@ -87,7 +54,7 @@ const getOrAskTrackerToken = async path => {
         parent: form,
         keyable: false,
         content: "Pivotal tracker API key",
-        style: TEXT_STYLING
+        style: theme.TEXT_STYLING
       });
       const apiKeyInput = blessed.textbox({
         parent: form,
@@ -118,7 +85,7 @@ const getOrAskTrackerToken = async path => {
         mouse: true,
         keys: true,
         name: "submit",
-        style: BUTTON_STYLING
+        style: button_styling
       });
       submit.on("press", () => form.submit());
 
@@ -147,7 +114,7 @@ const chooseProject = async (path, projects) => {
   } catch (e) {
     new Promise(resolve => {
       const form = blessed.form({
-        ...BOX_STYLING,
+        ...theme.BOX_STYLING,
         top: "center",
         left: "center",
         keys: true,
@@ -157,13 +124,13 @@ const chooseProject = async (path, projects) => {
         parent: form,
         keyable: false,
         content: "Choose your project for this repo",
-        style: TEXT_STYLING
+        style: theme.TEXT_STYLING
       });
       const radioset = blessed.radioset({
         parent: form,
         top: 3,
         height: projects.length,
-        style: TEXT_STYLING
+        style: theme.TEXT_STYLING
       });
       let selectedProject = null;
       projects.forEach((project, index) => {
@@ -173,7 +140,7 @@ const chooseProject = async (path, projects) => {
           content: project.project_name,
           name: "project",
           mouse: true,
-          style: TEXT_STYLING
+          style: theme.TEXT_STYLING
         });
         radioButton.on("check", () => (selectedProject = project));
       });
@@ -189,7 +156,7 @@ const chooseProject = async (path, projects) => {
         mouse: true,
         keys: true,
         name: "submit",
-        style: BUTTON_STYLING
+        style: theme.BUTTON_STYLING
       });
       submit.on("press", () => selectedProject && form.submit());
 
@@ -244,7 +211,7 @@ const createDataFetcher = apiToken => {
 
 const buildStoryUI = (storyId, fetchPivotalData) => {
   const storyScreen = blessed.box({
-    ...BOX_STYLING,
+    ...theme.BOX_STYLING,
     top: "center",
     left: "center",
     width: "100%",
@@ -257,7 +224,7 @@ const buildStoryUI = (storyId, fetchPivotalData) => {
       tags: true,
       width: "100%",
       content: `{center}Currently not on a story branch{/center}\n`,
-      style: TEXT_STYLING
+      style: theme.TEXT_STYLING
     });
   } else {
     blessed.text({
@@ -266,7 +233,7 @@ const buildStoryUI = (storyId, fetchPivotalData) => {
       tags: true,
       width: "100%",
       content: `{center}Story: ${storyId}{/center}\n`,
-      style: TEXT_STYLING
+      style: theme.TEXT_STYLING
     });
   }
   return storyScreen;
