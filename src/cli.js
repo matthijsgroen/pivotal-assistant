@@ -231,27 +231,13 @@ const buildStoryUI = (story, tasks) => {
       style: theme.TEXT_STYLING
     });
   } else {
-    const width = screen.width - 8;
-    const escapeAndWrap = text =>
-      text
-        .split(/[^\S\n]+/)
-        .reduce(
-          (total, elem) =>
-            (total.split("\n").slice(-1)[0] + elem).length > width
-              ? total + "\n" + elem
-              : total + " " + elem,
-          ""
-        )
-        .trim();
     blessed.text({
       parent: storyScreen,
       keyable: false,
       tags: true,
-
-      width: "100%",
       content:
-        `{bold}${escapeAndWrap(story.name)}{/bold}\n\n` +
-        escapeAndWrap(story.description),
+        `{bold}${blessed.escape(story.name)}{/bold}\n\n` +
+        blessed.escape(story.description),
       style: theme.TEXT_STYLING
     });
   }
