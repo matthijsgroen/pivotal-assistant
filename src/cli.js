@@ -209,15 +209,19 @@ const createDataFetcher = apiToken => {
     });
 };
 
-const buildStoryUI = (storyId, fetchPivotalData) => {
+const buildStoryUI = (story, tasks) => {
   const storyScreen = blessed.box({
     ...theme.BOX_STYLING,
     top: "center",
     left: "center",
     width: "100%",
-    height: "100%"
+    height: "100%",
+    scrollable: true,
+    alwaysScroll: true,
+    mouse: true,
+    keyable: true
   });
-  if (!storyId) {
+  if (!story) {
     blessed.text({
       parent: storyScreen,
       keyable: false,
@@ -227,21 +231,55 @@ const buildStoryUI = (storyId, fetchPivotalData) => {
       style: theme.TEXT_STYLING
     });
   } else {
+    const width = screen.width - 8;
+    const escapeAndWrap = text =>
+      text
+        .split(/[^\S\n]+/)
+        .reduce(
+          (total, elem) =>
+            (total.split("\n").slice(-1)[0] + elem).length > width
+              ? total + "\n" + elem
+              : total + " " + elem,
+          ""
+        )
+        .trim();
     blessed.text({
       parent: storyScreen,
       keyable: false,
       tags: true,
+
       width: "100%",
-      content: `{center}Story: ${storyId}{/center}\n`,
+      content:
+        `{bold}${escapeAndWrap(story.name)}{/bold}\n\n` +
+        escapeAndWrap(story.description),
       style: theme.TEXT_STYLING
     });
   }
   return storyScreen;
 };
 
+const buildNoStoryUI = message => {
+  const storyScreen = blessed.box({
+    ...theme.BOX_STYLING,
+    top: "center",
+    left: "center",
+    width: "100%",
+    height: "100%"
+  });
+  blessed.text({
+    parent: storyScreen,
+    keyable: false,
+    tags: true,
+    width: "100%",
+    content: `{center}${message}{/center}\n`,
+    style: theme.TEXT_STYLING
+  });
+  return storyScreen;
+};
+
 const REFRESH_TIMEOUT = 20e3; // 20 seconds
 
-const storyBranch = /^ref:\srefs\/heads\/.+(\d{8,})/;
+const storyBranch = /^ref:\srefs\/heads\/.+?(\d{8,})/;
 const headFileChange = async () =>
   new Promise(resolve => {
     const watcher = watch(".git/HEAD", () => {
@@ -267,7 +305,21 @@ const updateLoop = async (project, fetchPivotalData) => {
         screen.remove(storyScreen);
       }
       currentStoryId = storyId;
-      storyScreen = buildStoryUI(storyId, fetchPivotalData);
+      if (storyId) {
+        try {
+          const storyUrl = `/projects/${project.project_id}/stories/${storyId}`;
+          const story = await fetchPivotalData(storyUrl);
+          const storyTasks = await fetchPivotalData(
+            `/projects/${project.project_id}/stories/${storyId}/tasks`
+          );
+          storyScreen = buildStoryUI(story);
+        } catch (e) {
+          //storyScreen = buildNoStoryUI("Story not found");
+          throw e;
+        }
+      } else {
+        storyScreen = buildNoStoryUI("Currently not on a story branch");
+      }
       screen.append(storyScreen);
       screen.render();
     }
