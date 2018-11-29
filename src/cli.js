@@ -221,26 +221,15 @@ const buildStoryUI = (story, tasks) => {
     mouse: true,
     keyable: true
   });
-  if (!story) {
-    blessed.text({
-      parent: storyScreen,
-      keyable: false,
-      tags: true,
-      width: "100%",
-      content: `{center}Currently not on a story branch{/center}\n`,
-      style: theme.TEXT_STYLING
-    });
-  } else {
-    blessed.text({
-      parent: storyScreen,
-      keyable: false,
-      tags: true,
-      content:
-        `{bold}${blessed.escape(story.name)}{/bold}\n\n` +
-        blessed.escape(story.description),
-      style: theme.TEXT_STYLING
-    });
-  }
+  blessed.text({
+    parent: storyScreen,
+    keyable: false,
+    tags: true,
+    content:
+      `{bold}${blessed.escape(story.name)}{/bold}\n\n` +
+      blessed.escape(story.description),
+    style: theme.TEXT_STYLING
+  });
   return storyScreen;
 };
 
@@ -250,13 +239,13 @@ const buildNoStoryUI = message => {
     top: "center",
     left: "center",
     width: "100%",
-    height: "100%"
+    height: "100%",
+    scrollable: true
   });
   blessed.text({
     parent: storyScreen,
     keyable: false,
     tags: true,
-    width: "100%",
     content: `{center}${message}{/center}\n`,
     style: theme.TEXT_STYLING
   });
