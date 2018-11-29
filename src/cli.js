@@ -186,8 +186,10 @@ const buildStoryUI = (story, tasks) => {
     height: "100%",
     scrollable: true,
     alwaysScroll: true,
+    focussed: true,
     mouse: true,
-    keyable: true,
+    keys: true,
+    vi: true,
     label: {
       text: `[ ${story.story_type}:${
         story.estimate ? ` ${story.estimate} points, ` : ""
