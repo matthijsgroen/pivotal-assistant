@@ -221,9 +221,9 @@ const buildStoryUI = (story, tasks) => {
     mouse: true,
     keyable: true,
     label: {
-      text: `[ ${story.kind}: ${story.estimate} points, ${
-        story.current_state
-      } ]`,
+      text: `[ ${story.story_type}:${
+        story.estimate ? ` ${story.estimate} points, ` : ""
+      } ${story.current_state} ]`,
       side: "center"
     }
   });
