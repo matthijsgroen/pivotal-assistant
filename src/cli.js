@@ -4,8 +4,8 @@ const { watch } = require("fs");
 const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
 const homedir = require("os").homedir();
-const https = require("https");
 const theme = require("./themes/pivotal");
+const { createAPIFunctions } = require("./api");
 
 const screen = blessed.screen({
   smartCSR: true
@@ -177,38 +177,6 @@ const chooseProject = async (path, projects) => {
   }
 };
 
-const createDataFetcher = apiToken => {
-  return async apiPath =>
-    new Promise((resolve, reject) => {
-      https.get(
-        `https://www.pivotaltracker.com/services/v5${apiPath}`,
-        {
-          headers: {
-            "X-TrackerToken": apiToken
-          }
-        },
-        response => {
-          if (response.statusCode >= 400 && response.statusCode < 600) {
-            reject(new Error(`Request returned ${response.statusCode}`));
-            return;
-          }
-          let data = "";
-          response.on("data", chunk => {
-            data += chunk;
-          });
-          response.on("end", () => {
-            try {
-              const struct = JSON.parse(data);
-              resolve(struct);
-            } catch (e) {
-              reject(e);
-            }
-          });
-        }
-      );
-    });
-};
-
 const buildStoryUI = (story, tasks) => {
   const storyScreen = blessed.box({
     ...theme.BOX_STYLING,
@@ -269,7 +237,7 @@ const headFileChange = async () =>
     });
   });
 
-const updateLoop = async (project, fetchPivotalData) => {
+const updateLoop = async (project, api) => {
   let currentStoryId = false;
   let storyScreen;
 
@@ -289,8 +257,8 @@ const updateLoop = async (project, fetchPivotalData) => {
       if (storyId) {
         try {
           const storyUrl = `/projects/${project.project_id}/stories/${storyId}`;
-          const story = await fetchPivotalData(storyUrl);
-          const storyTasks = await fetchPivotalData(
+          const story = await api.get(storyUrl);
+          const storyTasks = await api.get(
             `/projects/${project.project_id}/stories/${storyId}/tasks`
           );
           storyScreen = buildStoryUI(story);
@@ -315,11 +283,11 @@ const run = async () => {
   );
   const trackerData = await getOrAskTrackerToken(`${homedir}/.pt.json`);
   const apiToken = trackerData.apiKey;
-  const fetchPivotalData = createDataFetcher(apiToken);
+  const api = createAPIFunctions(apiToken);
 
-  const profile = await fetchPivotalData("/me");
+  const profile = await api.get("/me");
   const project = await chooseProject(".pt.json", profile.projects);
 
-  updateLoop(project, fetchPivotalData);
+  updateLoop(project, api);
 };
 run();
