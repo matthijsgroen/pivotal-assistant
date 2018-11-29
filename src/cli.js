@@ -219,7 +219,13 @@ const buildStoryUI = (story, tasks) => {
     scrollable: true,
     alwaysScroll: true,
     mouse: true,
-    keyable: true
+    keyable: true,
+    label: {
+      text: `[ ${story.kind}: ${story.estimate} points, ${
+        story.current_state
+      } ]`,
+      side: "center"
+    }
   });
   blessed.text({
     parent: storyScreen,
