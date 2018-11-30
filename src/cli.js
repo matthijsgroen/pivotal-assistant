@@ -85,7 +85,7 @@ const getOrAskTrackerToken = async path => {
         mouse: true,
         keys: true,
         name: "submit",
-        style: button_styling
+        style: theme.BUTTON_STYLING
       });
       submit.on("press", () => form.submit());
 
@@ -179,11 +179,17 @@ const chooseProject = async (path, projects) => {
 
 const buildStoryUI = (story, tasks) => {
   const storyScreen = blessed.box({
-    ...theme.BOX_STYLING,
-    top: "center",
-    left: "center",
+    parent: screen,
     width: "100%",
-    height: "100%",
+    height: "100%"
+  });
+  const textArea = blessed.box({
+    parent: storyScreen,
+    ...theme.BOX_STYLING,
+    top: 0,
+    right: 0,
+    width: "100%",
+    height: "100%-1",
     scrollable: true,
     alwaysScroll: true,
     focussed: true,
@@ -192,13 +198,13 @@ const buildStoryUI = (story, tasks) => {
     vi: true,
     label: {
       text: `[ ${story.story_type}:${
-        story.estimate ? ` ${story.estimate} points, ` : ""
+        story.estimate !== undefined ? ` ${story.estimate} points, ` : ""
       } ${story.current_state} ]`,
       side: "center"
     }
   });
-  blessed.text({
-    parent: storyScreen,
+  const info = blessed.text({
+    parent: textArea,
     keyable: false,
     tags: true,
     content:
@@ -206,6 +212,87 @@ const buildStoryUI = (story, tasks) => {
       blessed.escape(story.description),
     style: theme.TEXT_STYLING
   });
+  const taskList = blessed.box({
+    parent: storyScreen,
+    ...theme.BOX_STYLING,
+    top: 0,
+    right: 0,
+    width: "100%",
+    height: "100%-1",
+    scrollable: true,
+    alwaysScroll: true,
+    focussed: true,
+    mouse: true,
+    keys: true,
+    vi: true,
+    label: {
+      text: `[ ${story.story_type}:${
+        story.estimate !== undefined ? ` ${story.estimate} points, ` : ""
+      } ${story.current_state} ]`,
+      side: "center"
+    }
+  });
+  let taskOffset = 0;
+  tasks.forEach(task => {
+    const checkbox = blessed.checkbox({
+      parent: taskList,
+      top: taskOffset,
+      height: "shrink",
+      content: task.description,
+      mouse: true,
+      checked: task.complete,
+      style: theme.TEXT_STYLING
+    });
+    checkbox.on("check", () => {});
+    checkbox.parseContent();
+    const height = checkbox._clines.length;
+    taskOffset += height;
+  });
+  taskList.hide();
+
+  const bar = blessed.listbar({
+    autoCommandKeys: true,
+    mouse: true,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 1,
+    commands: {
+      Info: {
+        keys: ["1"],
+        callback: () => {
+          textArea.show();
+          taskList.hide();
+        }
+      },
+      Comments: {
+        keys: ["2"],
+        callback: () => {
+          textArea.hide();
+          taskList.hide();
+        }
+      },
+      Tasks: {
+        keys: ["3"],
+        callback: () => {
+          textArea.hide();
+          taskList.show();
+          taskList.focus();
+        }
+      },
+      Refresh: {
+        keys: ["4"],
+        callback: () => {}
+      },
+      Quit: {
+        keys: ["5"],
+        callback: () => {
+          process.exit(0);
+        }
+      }
+    }
+  });
+  storyScreen.append(bar);
   return storyScreen;
 };
 
@@ -263,15 +350,16 @@ const updateLoop = async (project, api) => {
           const storyTasks = await api.get(
             `/projects/${project.project_id}/stories/${storyId}/tasks`
           );
-          storyScreen = buildStoryUI(story);
+          storyScreen = buildStoryUI(story, storyTasks);
         } catch (e) {
-          //storyScreen = buildNoStoryUI("Story not found");
+          //storyScreen = buildNoStoryUI(
+          //`Story not found: {bold}${storyId}{/bold}`
+          //);
           throw e;
         }
       } else {
         storyScreen = buildNoStoryUI("Currently not on a story branch");
       }
-      screen.append(storyScreen);
       screen.render();
     }
     await headFileChange();
