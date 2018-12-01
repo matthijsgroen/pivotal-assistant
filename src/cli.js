@@ -199,7 +199,7 @@ const buildStoryUI = (story, tasks) => {
     label: {
       text: `[ ${story.story_type}:${
         story.estimate !== undefined ? ` ${story.estimate} points, ` : ""
-      } ${story.current_state} ]`,
+      } ${story.current_state} - Info ]`,
       side: "center"
     }
   });
@@ -212,43 +212,45 @@ const buildStoryUI = (story, tasks) => {
       blessed.escape(story.description),
     style: theme.TEXT_STYLING
   });
-  const taskList = blessed.box({
+  const taskScreen = blessed.box({
     parent: storyScreen,
     ...theme.BOX_STYLING,
     top: 0,
     right: 0,
     width: "100%",
     height: "100%-1",
-    scrollable: true,
-    alwaysScroll: true,
+    label: {
+      text: `[ ${story.story_type}:${
+        story.estimate !== undefined ? ` ${story.estimate} points, ` : ""
+      } ${story.current_state} - Tasks ]`,
+      side: "center"
+    }
+  });
+  const taskList = blessed.list({
+    parent: taskScreen,
+    style: theme.LIST_STYLING,
+    height: 5,
     focussed: true,
     mouse: true,
     keys: true,
     vi: true,
-    label: {
-      text: `[ ${story.story_type}:${
-        story.estimate !== undefined ? ` ${story.estimate} points, ` : ""
-      } ${story.current_state} ]`,
-      side: "center"
-    }
+    scrollable: true,
+    alwaysScroll: true,
+    tags: true,
+    items: tasks.map(
+      task => `[${task.complete ? "X" : " "}] ${task.description}`
+    )
   });
-  let taskOffset = 0;
-  tasks.forEach(task => {
-    const checkbox = blessed.checkbox({
-      parent: taskList,
-      top: taskOffset,
-      height: "shrink",
-      content: task.description,
-      mouse: true,
-      checked: task.complete,
-      style: theme.TEXT_STYLING
-    });
-    checkbox.on("check", () => {});
-    checkbox.parseContent();
-    const height = checkbox._clines.length;
-    taskOffset += height;
+  blessed.line({
+    top: 6,
+    left: -3,
+    right: -3,
+    parent: taskScreen,
+    style: theme.TEXT_STYLING,
+    height: 1,
+    orientation: "horizontal"
   });
-  taskList.hide();
+  taskScreen.hide();
 
   const bar = blessed.listbar({
     autoCommandKeys: true,
@@ -262,21 +264,22 @@ const buildStoryUI = (story, tasks) => {
         keys: ["1"],
         callback: () => {
           textArea.show();
-          taskList.hide();
+          taskScreen.hide();
+          textArea.focus();
         }
       },
       Comments: {
         keys: ["2"],
         callback: () => {
           textArea.hide();
-          taskList.hide();
+          taskScreen.hide();
         }
       },
       Tasks: {
         keys: ["3"],
         callback: () => {
           textArea.hide();
-          taskList.show();
+          taskScreen.show();
           taskList.focus();
         }
       },
