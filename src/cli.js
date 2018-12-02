@@ -147,8 +147,8 @@ const chooseProject = async (path, projects) => {
       const submit = blessed.button({
         parent: form,
         content: "Submit",
-        shadow: true,
         top: 4 + projects.length,
+        shadow: true,
         height: 1,
         width: "shrink",
         padding: { left: 1, right: 1 },
@@ -250,6 +250,77 @@ const buildStoryUI = (story, tasks) => {
     height: 1,
     orientation: "horizontal"
   });
+  const taskActions = blessed.form({
+    top: 8,
+    left: 0,
+    bottom: 0,
+    keys: true,
+    parent: taskScreen,
+    style: theme.TEXT_STYLING
+  });
+  const taskText = blessed.textarea({
+    top: 0,
+    left: 0,
+    height: 4,
+    parent: taskActions,
+    keys: true,
+    vi: true,
+    mouse: true,
+    inputOnFocus: true,
+    style: {
+      ...theme.TEXT_STYLING,
+      focus: {
+        ...theme.LIST_STYLING.selected
+      }
+    }
+  });
+
+  const taskCompleteButton = blessed.button({
+    bottom: 0,
+    left: 0,
+    height: 1,
+    parent: taskActions,
+    style: theme.BUTTON_STYLING,
+    name: "taskComplete",
+    shadow: true,
+    height: 1,
+    tags: true,
+    width: "shrink",
+    padding: { left: 1, right: 1 },
+    content: "Finish task"
+  });
+
+  const taskSaveButton = blessed.button({
+    bottom: 0,
+    left: 15,
+    height: 1,
+    name: "taskSave",
+    parent: taskActions,
+    style: theme.BUTTON_STYLING,
+    shadow: true,
+    height: 1,
+    width: "shrink",
+    padding: { left: 1, right: 1 },
+    content: "Update task"
+  });
+
+  const setupTaskDetails = task => {
+    taskCompleteButton.setContent(task.complete ? "Open task" : "Finish task");
+    taskText.setValue(task.description);
+  };
+  if (tasks.length > 0) {
+    setupTaskDetails(tasks[0]);
+  } else {
+    taskCheckbox.hide();
+    taskText.hide();
+  }
+  taskList.on("select item", (item, index) => {
+    setupTaskDetails(tasks[index]);
+  });
+  taskList.on("select", (item, index) => {
+    taskCompleteButton.focus();
+  });
+
   taskScreen.hide();
 
   const bar = blessed.listbar({

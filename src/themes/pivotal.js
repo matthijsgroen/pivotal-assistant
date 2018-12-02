@@ -7,7 +7,12 @@ const BUTTON_STYLING = {
   fg: "#F1F0E3",
   bg: "#213F63",
   focus: {
-    bg: "#242D50"
+    fg: "#213F63",
+    bg: "green"
+  },
+  blur: {
+    fg: "#F1F0E3",
+    bg: "#464D55"
   }
 };
 
