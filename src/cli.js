@@ -228,8 +228,9 @@ const buildStoryUI = (story, tasks) => {
   });
   const taskList = blessed.list({
     parent: taskScreen,
+    top: 0,
+    bottom: 11,
     style: theme.LIST_STYLING,
-    height: 5,
     focussed: true,
     mouse: true,
     keys: true,
@@ -242,7 +243,7 @@ const buildStoryUI = (story, tasks) => {
     )
   });
   blessed.line({
-    top: 6,
+    bottom: 6,
     left: -3,
     right: -3,
     parent: taskScreen,
@@ -251,18 +252,18 @@ const buildStoryUI = (story, tasks) => {
     orientation: "horizontal"
   });
   const taskActions = blessed.form({
-    top: 8,
+    parent: taskScreen,
     left: 0,
     bottom: 0,
+    height: 5,
     keys: true,
-    parent: taskScreen,
     style: theme.TEXT_STYLING
   });
   const taskText = blessed.textarea({
+    parent: taskActions,
     top: 0,
     left: 0,
-    height: 4,
-    parent: taskActions,
+    height: 3,
     keys: true,
     vi: true,
     mouse: true,
@@ -276,10 +277,10 @@ const buildStoryUI = (story, tasks) => {
   });
 
   const taskCompleteButton = blessed.button({
+    parent: taskActions,
     bottom: 0,
     left: 0,
     height: 1,
-    parent: taskActions,
     style: theme.BUTTON_STYLING,
     name: "taskComplete",
     shadow: true,
@@ -291,11 +292,11 @@ const buildStoryUI = (story, tasks) => {
   });
 
   const taskSaveButton = blessed.button({
+    parent: taskActions,
     bottom: 0,
     left: 15,
     height: 1,
     name: "taskSave",
-    parent: taskActions,
     style: theme.BUTTON_STYLING,
     shadow: true,
     height: 1,
@@ -454,4 +455,5 @@ const run = async () => {
 
   updateLoop(project, api);
 };
+
 run();
