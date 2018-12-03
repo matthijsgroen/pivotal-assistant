@@ -44,9 +44,6 @@ const BOX_STYLING = {
       fg: "#666666",
       bg: "#464D55"
     },
-    hover: {
-      bg: "green"
-    },
     label: {
       fg: "#ffffff",
       bg: "#666666"

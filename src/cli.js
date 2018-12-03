@@ -177,7 +177,13 @@ const chooseProject = async (path, projects) => {
   }
 };
 
-const buildStoryUI = (story, tasks) => {
+const buildStoryUI = ({
+  story,
+  tasks,
+  navigation,
+  setNavigation,
+  setDataChanged
+}) => {
   const storyScreen = blessed.box({
     parent: screen,
     width: "100%",
@@ -229,7 +235,7 @@ const buildStoryUI = (story, tasks) => {
   const taskList = blessed.list({
     parent: taskScreen,
     top: 0,
-    bottom: 11,
+    bottom: 7,
     style: theme.LIST_STYLING,
     focussed: true,
     mouse: true,
@@ -238,9 +244,14 @@ const buildStoryUI = (story, tasks) => {
     scrollable: true,
     alwaysScroll: true,
     tags: true,
-    items: tasks.map(
-      task => `[${task.complete ? "X" : " "}] ${task.description}`
-    )
+    items: tasks
+      .map(task => `[${task.complete ? "X" : " "}] ${task.description}`)
+      .concat(" +  Add new task")
+  });
+  tasks.push({
+    id: "new",
+    description: "",
+    complete: false
   });
   blessed.line({
     bottom: 6,
@@ -276,24 +287,23 @@ const buildStoryUI = (story, tasks) => {
     }
   });
 
-  const taskCompleteButton = blessed.button({
+  const taskCompleteButton = blessed.checkbox({
     parent: taskActions,
     bottom: 0,
     left: 0,
     height: 1,
-    style: theme.BUTTON_STYLING,
+    keyable: true,
+    style: theme.TEXT_STYLING,
     name: "taskComplete",
-    shadow: true,
     height: 1,
     tags: true,
     width: "shrink",
-    padding: { left: 1, right: 1 },
-    content: "Finish task"
+    content: "Finished"
   });
-
   const taskSaveButton = blessed.button({
     parent: taskActions,
     bottom: 0,
+    keyable: true,
     left: 15,
     height: 1,
     name: "taskSave",
@@ -306,25 +316,40 @@ const buildStoryUI = (story, tasks) => {
   });
 
   const setupTaskDetails = task => {
-    taskCompleteButton.setContent(task.complete ? "Open task" : "Finish task");
+    task.complete ? taskCompleteButton.check() : taskCompleteButton.uncheck();
     taskText.setValue(task.description);
+
+    task.id === "new"
+      ? taskSaveButton.setContent("Create task")
+      : taskSaveButton.setContent("Update task");
   };
-  if (tasks.length > 0) {
-    setupTaskDetails(tasks[0]);
+  if (tasks.length > navigation.selectedTask) {
+    taskList.select(navigation.selectedTask);
+    setupTaskDetails(tasks[navigation.selectedTask]);
   } else {
     taskCheckbox.hide();
     taskText.hide();
   }
   taskList.on("select item", (item, index) => {
     setupTaskDetails(tasks[index]);
+    setNavigation({ selectedTask: index });
   });
   taskList.on("select", (item, index) => {
-    taskCompleteButton.focus();
+    taskText.focus();
   });
 
-  taskScreen.hide();
+  const focusTab = tab => {
+    tab === 0 ? textArea.show() : textArea.hide();
+    tab === 2 ? taskScreen.show() : taskScreen.hide();
+
+    tab === 0 && textArea.focus();
+    tab === 2 && taskList.focus();
+    setNavigation({ activeTab: tab });
+  };
+  focusTab(navigation.activeTab);
 
   const bar = blessed.listbar({
+    parent: storyScreen,
     autoCommandKeys: true,
     mouse: true,
     left: 0,
@@ -335,29 +360,26 @@ const buildStoryUI = (story, tasks) => {
       Info: {
         keys: ["1"],
         callback: () => {
-          textArea.show();
-          taskScreen.hide();
-          textArea.focus();
+          focusTab(0);
         }
       },
       Comments: {
         keys: ["2"],
         callback: () => {
-          textArea.hide();
-          taskScreen.hide();
+          focusTab(1);
         }
       },
       Tasks: {
         keys: ["3"],
         callback: () => {
-          textArea.hide();
-          taskScreen.show();
-          taskList.focus();
+          focusTab(2);
         }
       },
       Refresh: {
         keys: ["4"],
-        callback: () => {}
+        callback: () => {
+          setDataChanged();
+        }
       },
       Quit: {
         keys: ["5"],
@@ -367,7 +389,9 @@ const buildStoryUI = (story, tasks) => {
       }
     }
   });
-  storyScreen.append(bar);
+  storyScreen.on("destroy", () => {
+    bar.destroy();
+  });
   return storyScreen;
 };
 
@@ -393,17 +417,28 @@ const buildNoStoryUI = message => {
 const REFRESH_TIMEOUT = 20e3; // 20 seconds
 
 const storyBranch = /^ref:\srefs\/heads\/.+?(\d{8,})/;
-const headFileChange = async () =>
+let changeResolver = null;
+const setDataChanged = () => {
+  setTimeout(changeResolver, 2);
+};
+const headFileOrDataChange = async () =>
   new Promise(resolve => {
     const watcher = watch(".git/HEAD", () => {
       watcher.close();
       resolve(true);
     });
+    changeResolver = () => {
+      watcher.close();
+      resolve(true);
+    };
   });
 
 const updateLoop = async (project, api) => {
   let currentStoryId = false;
   let storyScreen;
+  let navigation = { activeTab: 0, selectedTask: 0 };
+  const setNavigation = navState =>
+    (navigation = { ...navigation, ...navState });
 
   while (true) {
     const gitHead = await fileOrExit(
@@ -412,32 +447,35 @@ const updateLoop = async (project, api) => {
     );
     const storyId = (gitHead.match(storyBranch) || [])[1];
 
-    if (storyId !== currentStoryId) {
-      if (storyScreen) {
-        storyScreen.destroy();
-        screen.remove(storyScreen);
-      }
-      currentStoryId = storyId;
-      if (storyId) {
-        try {
-          const storyUrl = `/projects/${project.project_id}/stories/${storyId}`;
-          const story = await api.get(storyUrl);
-          const storyTasks = await api.get(
-            `/projects/${project.project_id}/stories/${storyId}/tasks`
-          );
-          storyScreen = buildStoryUI(story, storyTasks);
-        } catch (e) {
-          //storyScreen = buildNoStoryUI(
-          //`Story not found: {bold}${storyId}{/bold}`
-          //);
-          throw e;
-        }
-      } else {
-        storyScreen = buildNoStoryUI("Currently not on a story branch");
-      }
-      screen.render();
+    if (storyScreen) {
+      storyScreen.destroy();
     }
-    await headFileChange();
+    currentStoryId = storyId;
+    if (storyId) {
+      try {
+        const storyUrl = `/projects/${project.project_id}/stories/${storyId}`;
+        const story = await api.get(storyUrl);
+        const tasks = await api.get(
+          `/projects/${project.project_id}/stories/${storyId}/tasks`
+        );
+        storyScreen = buildStoryUI({
+          story,
+          tasks,
+          navigation,
+          setNavigation,
+          setDataChanged
+        });
+      } catch (e) {
+        //storyScreen = buildNoStoryUI(
+        //`Story not found: {bold}${storyId}{/bold}`
+        //);
+        throw e;
+      }
+    } else {
+      storyScreen = buildNoStoryUI("Currently not on a story branch");
+    }
+    screen.render();
+    await headFileOrDataChange();
   }
 };
 
