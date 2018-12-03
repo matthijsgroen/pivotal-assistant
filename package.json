@@ -2,10 +2,12 @@
   "name": "pivotal-assistant",
   "version": "1.0.0",
   "description": "Terminal Pivotal Tracker",
-  "main": "index.js",
   "author": "Matthijs Groen <matthijs.groen@gmail.com>",
   "license": "MIT",
   "private": false,
+  "bin": {
+    "pivotal-assistant": "./bin/assistant"
+  },
   "dependencies": {
     "blessed": "^0.1.81"
   }
