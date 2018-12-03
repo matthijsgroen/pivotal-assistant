@@ -8,7 +8,8 @@ const theme = require("./themes/pivotal");
 const { createAPIFunctions } = require("./api");
 
 const screen = blessed.screen({
-  smartCSR: true
+  smartCSR: true,
+  fullUnicode: true
 });
 
 screen.title = "Pivotal assistant";
@@ -178,6 +179,7 @@ const chooseProject = async (path, projects) => {
 };
 
 const buildStoryUI = ({
+  api,
   story,
   tasks,
   navigation,
@@ -314,8 +316,34 @@ const buildStoryUI = ({
     padding: { left: 1, right: 1 },
     content: "Update task"
   });
+  let activeTask = null;
+  taskSaveButton.on("press", async () => {
+    const taskContent = taskText.getValue();
+    const completed = taskCompleteButton.checked;
+    if (activeTask.id === "new") {
+      await api.post(
+        `/projects/${story.project_id}/stories/${story.id}/tasks`,
+        {
+          description: taskContent,
+          complete: completed
+        }
+      );
+    } else {
+      await api.put(
+        `/projects/${story.project_id}/stories/${story.id}/tasks/${
+          activeTask.id
+        }`,
+        {
+          description: taskContent,
+          complete: completed
+        }
+      );
+    }
+    setDataChanged();
+  });
 
   const setupTaskDetails = task => {
+    activeTask = task;
     task.complete ? taskCompleteButton.check() : taskCompleteButton.uncheck();
     taskText.setValue(task.description);
 
@@ -333,6 +361,19 @@ const buildStoryUI = ({
   taskList.on("select item", (item, index) => {
     setupTaskDetails(tasks[index]);
     setNavigation({ selectedTask: index });
+  });
+  taskList.on("keypress", async char => {
+    if (activeTask.id !== "new" && char === "x") {
+      await api.put(
+        `/projects/${story.project_id}/stories/${story.id}/tasks/${
+          activeTask.id
+        }`,
+        {
+          complete: !activeTask.complete
+        }
+      );
+      setDataChanged();
+    }
   });
   taskList.on("select", (item, index) => {
     taskText.focus();
@@ -391,6 +432,7 @@ const buildStoryUI = ({
   });
   storyScreen.on("destroy", () => {
     bar.destroy();
+    taskText.destroy();
   });
   return storyScreen;
 };
@@ -463,7 +505,8 @@ const updateLoop = async (project, api) => {
           tasks,
           navigation,
           setNavigation,
-          setDataChanged
+          setDataChanged,
+          api
         });
       } catch (e) {
         //storyScreen = buildNoStoryUI(

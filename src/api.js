@@ -33,6 +33,44 @@ const createAPIFunctions = apiToken => ({
         },
         createResponseHandler(resolve, reject)
       );
+    }),
+  post: async (apiPath, data) =>
+    new Promise((resolve, reject) => {
+      const postData = JSON.stringify(data);
+      const request = https.request(
+        path(apiPath),
+        {
+          headers: {
+            "X-TrackerToken": apiToken,
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(postData)
+          },
+          method: "POST"
+        },
+        createResponseHandler(resolve, reject)
+      );
+
+      request.write(postData);
+      request.end();
+    }),
+  put: async (apiPath, data) =>
+    new Promise((resolve, reject) => {
+      const postData = JSON.stringify(data);
+      const request = https.request(
+        path(apiPath),
+        {
+          headers: {
+            "X-TrackerToken": apiToken,
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(postData)
+          },
+          method: "PUT"
+        },
+        createResponseHandler(resolve, reject)
+      );
+
+      request.write(postData);
+      request.end();
     })
 });
 
