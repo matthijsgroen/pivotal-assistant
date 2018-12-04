@@ -113,7 +113,7 @@ const chooseProject = async (path, projects) => {
       throw Error("project not found");
     }
   } catch (e) {
-    new Promise(resolve => {
+    return new Promise(resolve => {
       const form = blessed.form({
         ...theme.BOX_STYLING,
         top: "center",
@@ -216,8 +216,8 @@ const buildStoryUI = ({
     keyable: false,
     tags: true,
     content:
-      `{bold}${blessed.escape(story.name)}{/bold}\n\n` +
-      blessed.escape(story.description),
+      `{bold}${blessed.escape(story.name || "")}{/bold}\n\n` +
+      blessed.escape(story.description || ""),
     style: theme.TEXT_STYLING
   });
   const taskScreen = blessed.box({
