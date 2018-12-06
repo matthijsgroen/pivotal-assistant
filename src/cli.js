@@ -643,4 +643,19 @@ const run = async () => {
   updateLoop(project, api);
 };
 
+const [major, minor, patch] = process.version
+  .slice(1)
+  .split(".")
+  .map(e => parseInt(e, 10));
+const nodeVersion = { major, minor, patch };
+const supportedVersion = major > 10 || (major === 10 && minor >= 9);
+if (!supportedVersion) {
+  process.stdout.write(
+    `Node version ${
+      process.version
+    } detected, minimal version required: 10.9.0\n`
+  );
+  process.exit(1);
+}
+
 run();
