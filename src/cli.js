@@ -45,12 +45,12 @@ const fileOrExit = async (path, message) => {
 
 const buildStoryUI = ({
   api,
-  story,
-  tasks,
+  dataset,
   navigation,
   setNavigation,
   setDataChanged
 }) => {
+  const { story, tasks } = dataset;
   const storyScreen = blessed.box({
     parent: screen,
     width: "100%",
@@ -322,12 +322,22 @@ const headFileOrDataChange = async () =>
     timeout = setTimeout(end, REFRESH_TIMEOUT);
   });
 
+const fetchStoryData = async (api, project, storyId) => {
+  const storyUrl = `/projects/${project.project_id}/stories/${storyId}`;
+  return {
+    story: await api.get(storyUrl),
+    tasks: await api.get(`${storyUrl}/tasks`)
+  };
+};
+
 const updateLoop = async (project, api) => {
   let currentStoryId = false;
   let storyScreen;
   let navigation = { activeTab: 0, selectedTask: 0 };
   const setNavigation = navState =>
     (navigation = { ...navigation, ...navState });
+
+  let dataset = {};
 
   while (true) {
     const gitHead = await fileOrExit(
@@ -336,33 +346,39 @@ const updateLoop = async (project, api) => {
     );
     const storyId = (gitHead.match(storyBranch) || [])[1];
 
-    if (storyScreen) {
-      storyScreen.destroy();
-    }
     currentStoryId = storyId;
     if (storyId) {
       try {
-        const storyUrl = `/projects/${project.project_id}/stories/${storyId}`;
-        const story = await api.get(storyUrl);
-        const tasks = await api.get(
-          `/projects/${project.project_id}/stories/${storyId}/tasks`
-        );
-        storyScreen = buildStoryUI({
-          story,
-          tasks,
-          navigation,
-          setNavigation,
-          setDataChanged,
-          api
-        });
+        const storyDataset = await fetchStoryData(api, project, storyId);
+        if (JSON.stringify(storyDataset) !== JSON.stringify(dataset)) {
+          dataset = storyDataset;
+          if (storyScreen) {
+            storyScreen.destroy();
+          }
+          storyScreen = buildStoryUI({
+            dataset,
+            navigation,
+            setNavigation,
+            setDataChanged,
+            api
+          });
+        }
       } catch (e) {
+        if (storyScreen) {
+          storyScreen.destroy();
+        }
+        dataset = {};
         storyScreen = buildNoStoryUI(
           theme,
           screen,
-          `Story not found: {bold}${storyId}{/bold}`
+          `Story not found: {bold}${storyId}{/bold}\n\n${e.message}`
         );
       }
     } else {
+      if (storyScreen) {
+        storyScreen.destroy();
+      }
+      dataset = {};
       storyScreen = buildNoStoryUI(
         theme,
         screen,
