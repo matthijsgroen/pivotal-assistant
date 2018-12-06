@@ -212,6 +212,78 @@ const buildStoryUI = ({
     setDataChanged();
   });
 
+  const commentsScreen = blessed.box({
+    parent: storyScreen,
+    ...theme.BOX_STYLING,
+    top: 0,
+    right: 0,
+    width: "100%",
+    height: "100%-1",
+    label: {
+      text: `[ ${story.story_type}:${
+        story.estimate !== undefined ? ` ${story.estimate} points, ` : ""
+      } ${story.current_state} - Comments ${progress}]`,
+      side: "center"
+    }
+  });
+  const commentsLog = blessed.log({
+    parent: commentsScreen,
+    style: theme.TEXT_STYLING,
+    tags: true,
+    top: 0,
+    bottom: 3
+  });
+  const chatBar = blessed.textbox({
+    parent: commentsScreen,
+    bottom: 0,
+    height: 1,
+    mouse: true,
+    keys: true,
+    vi: true
+  });
+  chatBar.on("submit", async () => {
+    const message = chatBar.getValue();
+    await api.post(
+      `/projects/${story.project_id}/stories/${story.id}/comments`,
+      { text: message }
+    );
+    setDataChanged();
+  });
+  let date = null;
+  const dateStr = date =>
+    `${date.getFullYear()}-${`00${date.getMonth() + 1}`.slice(
+      -2
+    )}-${`00${date.getDate()}`.slice(-2)}`;
+
+  const timeStr = date =>
+    `${`00${date.getHours()}`.slice(-2)}:${`00${date.getMinutes()}`.slice(-2)}`;
+
+  const today = dateStr(new Date());
+  const yesterday = dateStr(new Date(new Date() * 1 - 24 * 60 * 60 * 1000));
+
+  story.comments.forEach(comment => {
+    const localDate = new Date(comment.created_at);
+    const messageDate = dateStr(localDate);
+    const messageTime = timeStr(localDate);
+
+    if (messageDate !== date) {
+      date = messageDate;
+      const displayDate =
+        date === today
+          ? "Today"
+          : date === yesterday
+            ? "Yesterday"
+            : messageDate;
+      commentsLog.add(`{center}- ${displayDate} -{/center}`);
+    }
+
+    commentsLog.add(
+      `{black-fg}[${timeStr(localDate)}]{/black-fg} {bold}${
+        comment.person.name
+      }{/bold}: ${comment.text}`
+    );
+  });
+
   const taskScreen = blessed.box({
     parent: storyScreen,
     ...theme.BOX_STYLING,
@@ -377,13 +449,18 @@ const buildStoryUI = ({
 
   const focusTab = tab => {
     tab === 0 ? infoScreen.show() : infoScreen.hide();
+    tab === 1 ? commentsScreen.show() : commentsScreen.hide();
     tab === 2 ? taskScreen.show() : taskScreen.hide();
 
     tab === 0 && textScroll.focus();
+    tab === 1 && chatBar.focus();
     tab === 2 && taskList.focus();
     setNavigation({ activeTab: tab });
   };
   focusTab(navigation.activeTab);
+
+  const commentsKey = `Comments (${story.comments.length})`;
+  const tasksKey = `Tasks (${story.tasks.length})`;
 
   const bar = blessed.listbar({
     parent: storyScreen,
@@ -400,13 +477,13 @@ const buildStoryUI = ({
           focusTab(0);
         }
       },
-      Comments: {
+      [commentsKey]: {
         keys: ["2"],
         callback: () => {
           focusTab(1);
         }
       },
-      Tasks: {
+      [tasksKey]: {
         keys: ["3"],
         callback: () => {
           focusTab(2);
