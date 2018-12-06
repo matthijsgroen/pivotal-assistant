@@ -438,7 +438,7 @@ const buildStoryUI = ({
   return storyScreen;
 };
 
-const REFRESH_TIMEOUT = 20e3; // 20 seconds
+const REFRESH_TIMEOUT = 120e3; // 120 seconds
 
 const storyBranch = /^ref:\srefs\/heads\/.+?(\d{8,})/;
 let changeResolver = null;
@@ -447,14 +447,15 @@ const setDataChanged = () => {
 };
 const headFileOrDataChange = async () =>
   new Promise(resolve => {
-    const watcher = watch(".git/HEAD", () => {
-      watcher.close();
-      resolve(true);
-    });
-    changeResolver = () => {
+    let timeout = null;
+    const end = () => {
+      clearTimeout(timeout);
       watcher.close();
       resolve(true);
     };
+    const watcher = watch(".git/HEAD", end);
+    changeResolver = () => end();
+    timeout = setTimeout(end, REFRESH_TIMEOUT);
   });
 
 const updateLoop = async (project, api) => {
