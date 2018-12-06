@@ -9,6 +9,7 @@ const { createAPIFunctions } = require("./api");
 const { buildNoStoryUI } = require("./ui/no-story");
 const { chooseProject } = require("./ui/choose-project");
 const { getOrAskTrackerToken } = require("./ui/get-token");
+const querystring = require("querystring");
 
 const screen = blessed.screen({
   smartCSR: true,
@@ -112,18 +113,17 @@ const getNextState = story => {
 
 const buildStoryUI = ({
   api,
-  dataset,
+  story,
   navigation,
   setNavigation,
   setDataChanged
 }) => {
-  const { story, tasks } = dataset;
   const progress =
-    tasks.length === 0
+    story.tasks.length === 0
       ? ""
       : `- ${Math.round(
-          (tasks.reduce((acc, task) => (acc + task.complete ? 1 : 0), 0) /
-            tasks.length) *
+          (story.tasks.reduce((acc, task) => acc + (task.complete ? 1 : 0), 0) /
+            story.tasks.length) *
             100
         )}% `;
 
@@ -226,6 +226,14 @@ const buildStoryUI = ({
       side: "center"
     }
   });
+  const tasks = [
+    ...story.tasks,
+    {
+      id: "new",
+      description: "",
+      complete: false
+    }
+  ];
   const taskList = blessed.list({
     parent: taskScreen,
     top: 0,
@@ -239,13 +247,9 @@ const buildStoryUI = ({
     alwaysScroll: true,
     tags: true,
     items: tasks
+      .slice(0, -1)
       .map(task => `[${task.complete ? "X" : " "}] ${task.description}`)
       .concat(" +  Add new task")
-  });
-  tasks.push({
-    id: "new",
-    description: "",
-    complete: false
   });
   blessed.line({
     bottom: 6,
@@ -449,12 +453,12 @@ const headFileOrDataChange = async () =>
     timeout = setTimeout(end, REFRESH_TIMEOUT);
   });
 
-const fetchStoryData = async (api, project, storyId) => {
-  const storyUrl = `/projects/${project.project_id}/stories/${storyId}`;
-  return {
-    story: await api.get(storyUrl),
-    tasks: await api.get(`${storyUrl}/tasks`)
-  };
+const fetchStory = async (api, project, storyId) => {
+  const args = ":default,tasks,labels(name),comments(created_at,text,person)";
+  const storyUrl = `/projects/${
+    project.project_id
+  }/stories/${storyId}?${querystring.stringify({ fields: args })}`;
+  return await api.get(storyUrl);
 };
 
 const updateLoop = async (project, api) => {
@@ -476,14 +480,14 @@ const updateLoop = async (project, api) => {
     currentStoryId = storyId;
     if (storyId) {
       try {
-        const storyDataset = await fetchStoryData(api, project, storyId);
-        if (JSON.stringify(storyDataset) !== JSON.stringify(dataset)) {
-          dataset = storyDataset;
+        const story = await fetchStory(api, project, storyId);
+        if (JSON.stringify(story) !== JSON.stringify(dataset)) {
+          dataset = story;
           if (storyScreen) {
             storyScreen.destroy();
           }
           storyScreen = buildStoryUI({
-            dataset,
+            story,
             navigation,
             setNavigation,
             setDataChanged,
