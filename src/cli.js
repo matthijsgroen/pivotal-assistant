@@ -260,6 +260,16 @@ const buildStoryUI = ({
 
   const today = dateStr(new Date());
   const yesterday = dateStr(new Date(new Date() * 1 - 24 * 60 * 60 * 1000));
+  const fileSize = size => {
+    const scale = [
+      { size: 1024 * 1024 * 1024, unit: "GB" },
+      { size: 1024 * 1024, unit: "MB" },
+      { size: 1024, unit: "KB" },
+      { size: 0, unit: "B" }
+    ].find(scale => size > scale.size);
+
+    return `${Math.round((size / scale.size) * 10) / 10}${scale.unit}`;
+  };
 
   story.comments.forEach(comment => {
     const localDate = new Date(comment.created_at);
@@ -277,10 +287,20 @@ const buildStoryUI = ({
       commentsLog.add(`{center}- ${displayDate} -{/center}`);
     }
 
-    commentsLog.add(
-      `{black-fg}[${timeStr(localDate)}]{/black-fg} {bold}${
-        comment.person.name
-      }{/bold}: ${comment.text}`
+    comment.text &&
+      commentsLog.add(
+        `{black-fg}[${timeStr(localDate)}]{/black-fg} {bold}${
+          comment.person.name
+        }{/bold}: ${comment.text}`
+      );
+    comment.file_attachments.forEach(attachment =>
+      commentsLog.add(
+        `{black-fg}[${timeStr(localDate)}]{/black-fg} * {bold}${
+          comment.person.name
+        }{/bold} uploaded {underline}${
+          attachment.filename
+        }{/underline} {black-fg}(${fileSize(attachment.size)}){/black-fg}`
+      )
     );
   });
 
@@ -531,7 +551,8 @@ const headFileOrDataChange = async () =>
   });
 
 const fetchStory = async (api, project, storyId) => {
-  const args = ":default,tasks,labels(name),comments(created_at,text,person)";
+  const args =
+    ":default,tasks,labels(name),comments(created_at,text,person,file_attachments)";
   const storyUrl = `/projects/${
     project.project_id
   }/stories/${storyId}?${querystring.stringify({ fields: args })}`;
