@@ -51,6 +51,15 @@ const buildStoryUI = ({
   setDataChanged
 }) => {
   const { story, tasks } = dataset;
+  const progress =
+    tasks.length === 0
+      ? ""
+      : `- ${Math.round(
+          (tasks.reduce((acc, task) => (acc + task.complete ? 1 : 0), 0) /
+            tasks.length) *
+            100
+        )}% `;
+
   const storyScreen = blessed.box({
     parent: screen,
     width: "100%",
@@ -72,7 +81,7 @@ const buildStoryUI = ({
     label: {
       text: `[ ${story.story_type}:${
         story.estimate !== undefined ? ` ${story.estimate} points, ` : ""
-      } ${story.current_state} - Info ]`,
+      } ${story.current_state} - Info ${progress}]`,
       side: "center"
     }
   });
@@ -95,7 +104,7 @@ const buildStoryUI = ({
     label: {
       text: `[ ${story.story_type}:${
         story.estimate !== undefined ? ` ${story.estimate} points, ` : ""
-      } ${story.current_state} - Tasks ]`,
+      } ${story.current_state} - Tasks ${progress}]`,
       side: "center"
     }
   });
