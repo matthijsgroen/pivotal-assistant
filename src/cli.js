@@ -6,6 +6,7 @@ const writeFile = util.promisify(require("fs").writeFile);
 const homedir = require("os").homedir();
 const theme = require("./themes/pivotal");
 const { createAPIFunctions } = require("./api");
+const { buildNoStoryUI } = require("./ui/no-story");
 
 const screen = blessed.screen({
   smartCSR: true,
@@ -437,25 +438,6 @@ const buildStoryUI = ({
   return storyScreen;
 };
 
-const buildNoStoryUI = message => {
-  const storyScreen = blessed.box({
-    ...theme.BOX_STYLING,
-    top: "center",
-    left: "center",
-    width: "100%",
-    height: "100%",
-    scrollable: true
-  });
-  blessed.text({
-    parent: storyScreen,
-    keyable: false,
-    tags: true,
-    content: `{center}${message}{/center}\n`,
-    style: theme.TEXT_STYLING
-  });
-  return storyScreen;
-};
-
 const REFRESH_TIMEOUT = 20e3; // 20 seconds
 
 const storyBranch = /^ref:\srefs\/heads\/.+?(\d{8,})/;
@@ -509,13 +491,18 @@ const updateLoop = async (project, api) => {
           api
         });
       } catch (e) {
-        //storyScreen = buildNoStoryUI(
-        //`Story not found: {bold}${storyId}{/bold}`
-        //);
-        throw e;
+        storyScreen = buildNoStoryUI(
+          theme,
+          screen,
+          `Story not found: {bold}${storyId}{/bold}`
+        );
       }
     } else {
-      storyScreen = buildNoStoryUI("Currently not on a story branch");
+      storyScreen = buildNoStoryUI(
+        theme,
+        screen,
+        "Currently not on a story branch"
+      );
     }
     screen.render();
     await headFileOrDataChange();
