@@ -5,7 +5,8 @@ Command line pivotal tracker viewer (ideal when using tmux)
 ## Features:
 
 - Opens story of current git branch (if branch name contains story id)
-- Show story info
+- Show story info, labels
+- Update story state
 - Show / edit / complete tasks
 
 ## Setup
