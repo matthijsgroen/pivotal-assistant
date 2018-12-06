@@ -5,6 +5,7 @@
   "author": "Matthijs Groen <matthijs.groen@gmail.com>",
   "license": "MIT",
   "private": false,
+  "repository": "git@github.com:matthijsgroen/pivotal-assistant.git",
   "bin": {
     "pivotal-assistant": "./bin/assistant"
   },
