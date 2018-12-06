@@ -8,6 +8,7 @@ Command line pivotal tracker viewer (ideal when using tmux)
 - Show story info, labels
 - Update story state
 - Show / edit / complete tasks
+- Show / add comments
 
 ## Setup
 
