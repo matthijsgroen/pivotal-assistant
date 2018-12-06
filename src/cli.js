@@ -43,6 +43,73 @@ const fileOrExit = async (path, message) => {
   }
 };
 
+const getNextState = story => {
+  // accepted, delivered, finished, started, rejected, planned, unstarted, unscheduled
+  const startable =
+    (story.story_type === "bug" &&
+      ["unscheduled", "unstarted", "planned"].includes(story.current_state)) ||
+    (story.story_type === "feature" &&
+      ["unscheduled", "unstarted", "planned"].includes(story.current_state) &&
+      story.estimate !== undefined) ||
+    (story.story_type === "chore" &&
+      ["unscheduled", "unstarted", "planned"].includes(story.current_state));
+
+  if (startable) {
+    return {
+      label: "Start",
+      style: {
+        fg: "black",
+        bg: "white"
+      },
+      value: "started"
+    };
+  }
+  const finishable =
+    (story.story_type === "bug" && story.current_state === "started") ||
+    (story.story_type === "feature" && story.current_state === "started");
+  const completable =
+    story.story_type === "chore" && story.current_state === "started";
+
+  if (finishable || completable) {
+    return {
+      label: "Finish",
+      style: {
+        fg: "white",
+        bg: "#213F63"
+      },
+      value: completable ? "accepted" : "finished"
+    };
+  }
+
+  const deliverable =
+    (story.story_type === "bug" && story.current_state === "finished") ||
+    (story.story_type === "feature" && story.current_state === "finished");
+
+  if (deliverable) {
+    return {
+      label: "Deliver",
+      style: {
+        fg: "black",
+        bg: "#FF9225"
+      },
+      value: "delivered"
+    };
+  }
+
+  const accepted = story.current_state === "accepted";
+  const estimatable =
+    story.story_type === "feature" && story.estimate === undefined;
+
+  return {
+    label: accepted ? "Accepted" : estimatable ? "Unestimated" : "Start",
+    style: {
+      fg: "grey",
+      bg: "white"
+    },
+    value: null
+  };
+};
+
 const buildStoryUI = ({
   api,
   dataset,
@@ -65,19 +132,13 @@ const buildStoryUI = ({
     width: "100%",
     height: "100%"
   });
-  const textArea = blessed.box({
+  const infoScreen = blessed.box({
     parent: storyScreen,
     ...theme.BOX_STYLING,
     top: 0,
     right: 0,
     width: "100%",
     height: "100%-1",
-    scrollable: true,
-    alwaysScroll: true,
-    focussed: true,
-    mouse: true,
-    keys: true,
-    vi: true,
     label: {
       text: `[ ${story.story_type}:${
         story.estimate !== undefined ? ` ${story.estimate} points, ` : ""
@@ -85,15 +146,72 @@ const buildStoryUI = ({
       side: "center"
     }
   });
+  const labels =
+    story.labels.length > 0
+      ? story.labels
+          .map(label => `{#006000-bg}[ ${label.name} ]{/#006000-bg}`)
+          .join(" ") + "\n\n"
+      : "";
+
+  const textScroll = blessed.box({
+    parent: infoScreen,
+    ...theme.TEXT_STYLING,
+    top: 0,
+    left: 0,
+    width: "100%-8",
+    height: "100%-6",
+    scrollable: true,
+    alwaysScroll: true,
+    focussed: true,
+    mouse: true,
+    keys: true,
+    vi: true
+  });
   const info = blessed.text({
-    parent: textArea,
+    parent: textScroll,
     keyable: false,
     tags: true,
     content:
       `{bold}${blessed.escape(story.name || "")}{/bold}\n\n` +
+      labels +
       blessed.escape(story.description || ""),
     style: theme.TEXT_STYLING
   });
+  const controlBar = blessed.box({
+    parent: infoScreen,
+    bottom: -2,
+    left: -5,
+    right: -5,
+    height: 3,
+    keyable: true,
+    tags: false,
+    content: "",
+    ...theme.BOX_STYLING,
+    padding: { top: 0, left: 3, right: 3, bottom: 0 }
+  });
+  const nextState = getNextState(story);
+
+  const nextStateButton = blessed.button({
+    parent: controlBar,
+    bottom: 0,
+    shrink: true,
+    keyable: true,
+    tags: false,
+    mouse: true,
+    keys: true,
+    vi: true,
+    content: ` ${nextState.label} `,
+    style: nextState.style
+  });
+  nextStateButton.on("press", async () => {
+    if (nextState.value) {
+      await api.put(`/projects/${story.project_id}/stories/${story.id}`, {
+        current_state: nextState.value
+      });
+    }
+    setDataChanged();
+  });
+
   const taskScreen = blessed.box({
     parent: storyScreen,
     ...theme.BOX_STYLING,
@@ -254,10 +372,10 @@ const buildStoryUI = ({
   });
 
   const focusTab = tab => {
-    tab === 0 ? textArea.show() : textArea.hide();
+    tab === 0 ? infoScreen.show() : infoScreen.hide();
     tab === 2 ? taskScreen.show() : taskScreen.hide();
 
-    tab === 0 && textArea.focus();
+    tab === 0 && textScroll.focus();
     tab === 2 && taskList.focus();
     setNavigation({ activeTab: tab });
   };
