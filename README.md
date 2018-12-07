@@ -10,6 +10,8 @@ Command line pivotal tracker viewer (ideal when using tmux)
 - Show / edit / complete tasks
 - Show / add comments
 
+![Demo](./pivotal-assistant-demo.gif)
+
 ## Setup
 
 ```sh

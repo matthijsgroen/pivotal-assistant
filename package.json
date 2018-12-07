@@ -1,6 +1,6 @@
 {
   "name": "pivotal-assistant",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0",
   "description": "Terminal Pivotal Tracker",
   "author": "Matthijs Groen <matthijs.groen@gmail.com>",
   "license": "MIT",
@@ -9,6 +9,7 @@
   "bin": {
     "pivotal-assistant": "./bin/assistant"
   },
+  "files": ["bin/*", "src/*"],
   "dependencies": {
     "blessed": "^0.1.81"
   }
