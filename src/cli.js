@@ -377,7 +377,7 @@ const buildStoryUI = ({
     taskList.select(navigation.selectedTask);
     setupTaskDetails(tasks[navigation.selectedTask]);
   } else {
-    taskCheckbox.hide();
+    taskCompleteButton.hide();
     taskText.hide();
   }
   taskList.on("select item", (item, index) => {
@@ -460,6 +460,7 @@ const buildStoryUI = ({
   storyScreen.on("destroy", () => {
     bar.destroy();
     taskText.destroy();
+    chatBar.destroy();
   });
   return storyScreen;
 };
