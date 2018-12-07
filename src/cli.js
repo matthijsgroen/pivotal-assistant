@@ -460,6 +460,7 @@ const buildStoryUI = ({
     bar.destroy();
     taskText.destroy();
     chatBar.destroy();
+    taskList.destroy();
   });
   return storyScreen;
 };
