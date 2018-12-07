@@ -3,7 +3,6 @@ const util = require("util");
 const { watch } = require("fs");
 const readFile = util.promisify(require("fs").readFile);
 const writeFile = util.promisify(require("fs").writeFile);
-const homedir = require("os").homedir();
 const theme = require("./themes/pivotal");
 const { createAPIFunctions } = require("./api");
 const { buildNoStoryUI } = require("./ui/no-story");
@@ -559,22 +558,24 @@ const run = async () => {
     ".git/HEAD",
     "Please run this from the git root of your project"
   );
-  const trackerData = await getOrAskTrackerToken(
-    screen,
-    theme,
-    `${homedir}/.pt.json`
-  );
+  const trackerData = await getOrAskTrackerToken(screen, theme, ".pt.json");
   const apiToken = trackerData.apiKey;
   const api = createAPIFunctions(apiToken);
 
-  const profile = await api.get("/me");
+  let profile;
+  try {
+    profile = await api.get("/me");
+  } catch (e) {
+    await showMessage("No access to Pivotal API");
+    process.exit(1);
+  }
+
   const project = await chooseProject(
     screen,
     theme,
     ".pt.json",
     profile.projects
   );
-
   updateLoop(project, api);
 };
 
