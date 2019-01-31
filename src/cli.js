@@ -49,7 +49,8 @@ const buildStoryUI = ({
   story,
   navigation,
   setNavigation,
-  setDataChanged
+  setDataChanged,
+  profile
 }) => {
   const progress =
     story.tasks.length === 0
@@ -164,12 +165,19 @@ const buildStoryUI = ({
     style: theme.TEXT_STYLING,
     tags: true,
     top: 0,
-    bottom: 3
+    bottom: 4
+  });
+  const replyName = blessed.text({
+    parent: commentsScreen,
+    style: theme.TEXT_STYLING,
+    content: `{bold}${blessed.escape(profile.name || "")}{/bold} (you):`,
+    tags: true,
+    bottom: 2
   });
   const chatBar = blessed.textbox({
     parent: commentsScreen,
-    bottom: 0,
-    height: 1,
+    bottom: -1,
+    height: 3,
     mouse: true,
     keys: true,
     vi: true
@@ -494,7 +502,7 @@ const fetchStory = async (api, project, storyId) => {
   return await api.get(storyUrl);
 };
 
-const updateLoop = async (project, api) => {
+const updateLoop = async (project, api, profile) => {
   let currentStoryId = false;
   let storyScreen;
   let navigation = { activeTab: 0, selectedTask: 0 };
@@ -524,7 +532,8 @@ const updateLoop = async (project, api) => {
             navigation,
             setNavigation,
             setDataChanged,
-            api
+            api,
+            profile
           });
         }
       } catch (e) {
@@ -577,7 +586,7 @@ const run = async () => {
     ".pt.json",
     profile.projects
   );
-  updateLoop(project, api);
+  updateLoop(project, api, profile);
 };
 
 const [major, minor, patch] = process.version
