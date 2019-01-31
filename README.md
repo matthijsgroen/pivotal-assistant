@@ -7,7 +7,7 @@ Command line pivotal tracker viewer (ideal when using tmux)
 - Opens story of current git branch (if branch name contains story id)
 - Show story info, labels
 - Update story state
-- Show / edit / complete tasks
+- Show / edit / complete / delete tasks
 - Show / add comments
 
 ![Demo](./pivotal-assistant-demo.gif)
@@ -27,3 +27,10 @@ pivotal-assistant
 use arrow keys or vi keys or mouse to control.
 
 use `q` to quit
+
+## Keys:
+
+In taskscreen:
+
+- use 'x' to complete task
+- use 'D' to delete task

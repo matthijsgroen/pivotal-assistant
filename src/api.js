@@ -11,7 +11,7 @@ const createResponseHandler = (resolve, reject) => response => {
   });
   response.on("end", () => {
     try {
-      const struct = JSON.parse(data);
+      const struct = data.length > 0 ? JSON.parse(data) : null;
       resolve(struct);
     } catch (e) {
       reject(e);
@@ -70,6 +70,22 @@ const createAPIFunctions = apiToken => ({
       );
 
       request.write(postData);
+      request.end();
+    }),
+  delete: async apiPath =>
+    new Promise((resolve, reject) => {
+      const request = https.request(
+        path(apiPath),
+        {
+          headers: {
+            "X-TrackerToken": apiToken,
+            "Content-Type": "application/json"
+          },
+          method: "DELETE"
+        },
+        createResponseHandler(resolve, reject)
+      );
+
       request.end();
     })
 });

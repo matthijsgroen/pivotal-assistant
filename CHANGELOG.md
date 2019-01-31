@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Changelog
 - Name above reply box in comments screen
+- Support for deleting tasks, pressing 'D' on active task
 
 ## [1.0.0] - 2017-12-07
 ### Added

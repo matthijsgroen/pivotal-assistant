@@ -403,6 +403,14 @@ const buildStoryUI = ({
       );
       setDataChanged();
     }
+    if (activeTask.id !== "new" && char === "D") {
+      await api.delete(
+        `/projects/${story.project_id}/stories/${story.id}/tasks/${
+          activeTask.id
+        }`
+      );
+      setDataChanged();
+    }
   });
   taskList.on("select", (item, index) => {
     taskText.focus();
